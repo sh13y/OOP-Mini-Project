@@ -25,7 +25,7 @@ This repository contains a personal organizer project. Below is a list of key fe
 - [ ] Include important deadlines for assignments and implement deadline alerts.
 
 ### 6. GUI Component:
-- [ ] Use a C++ GUI framework like **Qt** or **.Net** to build a user interface.
+- [X] Use a C++ GUI framework like **Qt** or **.Net** to build a user interface.
 - [ ] Display income/expense forms, graphs, and reports.
 - [ ] Add buttons for income, expenses, and report generation.
 
