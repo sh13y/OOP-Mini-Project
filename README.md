@@ -116,6 +116,7 @@ A Qt-based desktop application designed to help students manage both their finan
 
 ## Project Structure 
 
+```
 PersonalOrganizer/
 ├── source/
 │   ├── main.cpp                # Entry point of the application
@@ -135,6 +136,7 @@ PersonalOrganizer/
 ├── resources/
 │   └── app_icon.ico            # Application icon
 └── PersonalOrganizer.pro        # Qt project file
+```
 
 ## Code Style
 - Clear class hierarchies
