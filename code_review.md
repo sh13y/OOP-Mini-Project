@@ -1,5 +1,3 @@
-Here's a detailed `code_review.md` file that explains the code in a beginner-friendly manner. This document will help you understand the structure and functionality of your project, making it easier to explain during your viva session.
-
 # Code Review for Personal Finance & Academic Organizer
 
 ## Overview
