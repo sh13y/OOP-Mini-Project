@@ -1,0 +1,17 @@
+release/main.o
+release/mainwindow.o
+release/loginwindow.o
+release/user.o
+release/database.o
+release/transaction.o
+release/transactiondialog.o
+release/registerdialog.o
+release/academicitem.o
+release/academicdialog.o
+release/qrc_app.o
+release/moc_mainwindow.o
+release/moc_loginwindow.o
+release/moc_database.o
+release/moc_transactiondialog.o
+release/moc_registerdialog.o
+release/moc_academicdialog.o
