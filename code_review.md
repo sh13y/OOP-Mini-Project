@@ -14,20 +14,20 @@ PersonalOrganizer/
 │   ├── main.cpp               # Entry point of the application
 │   ├── loginwindow.cpp        # Handles user login
 │   ├── mainwindow.cpp         # Main application window
-│   ├── transaction.cpp         # Manages financial transactions
+│   ├── transaction.cpp        # Manages financial transactions
 │   └── academicitem.cpp       # Represents academic commitments
 ├── headers/
 │   ├── loginwindow.h          # Header for login window
 │   ├── mainwindow.h           # Header for main window
-│   ├── transaction.h           # Header for transaction management
+│   ├── transaction.h          # Header for transaction management
 │   └── academicitem.h         # Header for academic item management
 ├── forms/
 │   ├── loginwindow.ui         # UI for login window
 │   ├── mainwindow.ui          # UI for main window
-│   └── transactiondialog.ui    # UI for transaction dialog
+│   └── transactiondialog.ui   # UI for transaction dialog
 ├── resources/
 │   └── app_icon.ico           # Application icon
-└── PersonalOrganizer.pro       # Qt project file
+└── PersonalOrganizer.pro      # Qt project file
 ```
 
 ### 1. `main.cpp`

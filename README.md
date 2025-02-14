@@ -18,7 +18,8 @@
 - [TODO Checklist](#todo-checklist)
 
 ## Overview
-A Qt-based desktop application designed to help students manage both their finances and academic schedules. The application features a clean, modern interface with a custom color palette inspired by professional design principles.
+A Qt-based desktop application designed to help students manage both their finances and academic schedules. The application features a clean, modern interface with a custom color palette inspired by professional design principles. 
+> **Note:** This app won't do your homework, but it will help you afford the coffee you need to stay awake while doing it!
 
 ## Key Features
 
@@ -26,6 +27,7 @@ A Qt-based desktop application designed to help students manage both their finan
 - Secure login system
 - User registration with password validation
 - Data persistence between sessions
+> **Warning:** Forgetting your password may lead to existential crises. 
 
 ### 2. Financial Management
 - Track both income and expenses
@@ -35,6 +37,7 @@ A Qt-based desktop application designed to help students manage both their finan
 - Visual representation through charts
 - Multiple income sources (Job, Scholarships, Allowance, Student Aid)
 - Customizable expense categories
+> **Fun Fact:** If you can't find your wallet, it's probably hiding from your budget!
 
 ### 3. Academic Schedule Management
 - Lecture schedule tracking
@@ -42,6 +45,7 @@ A Qt-based desktop application designed to help students manage both their finan
 - Automatic deadline alerts
 - Duration tracking for lectures
 - Detailed view of academic commitments
+> **Reminder:** Procrastination is not a valid time management strategy!
 
 ### 4. User Interface
 - Modern, minimalist design
@@ -113,6 +117,7 @@ A Qt-based desktop application designed to help students manage both their finan
 4. Advanced budget analysis tools.
 5. Calendar integration.
 6. Mobile companion app.
+> **Coming Soon:** An AI that reminds you to stop binge-watching and start studying!
 
 ## Project Structure 
 
