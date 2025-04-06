@@ -1,7 +1,6 @@
 #include "registerdialog.h"
 #include "ui_registerdialog.h"
-#include <QPushButton>
-#include <QDialogButtonBox>
+#include <QMessageBox>
 
 RegisterDialog::RegisterDialog(QWidget *parent)
     : QDialog(parent)
@@ -9,8 +8,8 @@ RegisterDialog::RegisterDialog(QWidget *parent)
 {
     ui->setupUi(this);
     setWindowTitle("Register New User");
-
-    // Apply modern style using the same color palette as LoginWindow
+    
+    // Apply modern style
     setStyleSheet(R"(
         QDialog {
             background-color: #F0EEDC;  /* eggshell */
@@ -27,48 +26,29 @@ RegisterDialog::RegisterDialog(QWidget *parent)
         QPushButton:hover {
             background-color: #F27D97;  /* rose-pompadour */
         }
+        QPushButton#buttonBox > QPushButton[text="Cancel"] {
+            background-color: #BBB68C;  /* sage */
+        }
+        QPushButton#buttonBox > QPushButton[text="Cancel"]:hover {
+            background-color: #9F6571;  /* rose-taupe */
+        }
         QLineEdit {
             padding: 8px;
-            border: 1px solid #dcdcdc;
+            border: 1px solid #9F6571;  /* rose-taupe */
             border-radius: 4px;
             background-color: white;
             font-size: 14px;
+            min-width: 200px;
         }
         QLineEdit:focus {
-            border: 2px solid #9F6571;  /* rose-taupe */
+            border: 2px solid #F27D97;  /* rose-pompadour */
         }
         QLabel {
             color: #000000;  /* black */
             font-size: 14px;
             font-weight: bold;
         }
-        QDialogButtonBox QPushButton {
-            min-width: 80px;
-        }
     )");
-
-    // Add password validation
-    connect(ui->passwordEdit, &QLineEdit::textChanged, this, &RegisterDialog::validatePasswords);
-    connect(ui->confirmPasswordEdit, &QLineEdit::textChanged, this, &RegisterDialog::validatePasswords);
-}
-
-void RegisterDialog::validatePasswords()
-{
-    QPushButton* okButton = ui->buttonBox->button(QDialogButtonBox::Ok);
-    if (ui->passwordEdit->text() != ui->confirmPasswordEdit->text()) {
-        ui->confirmPasswordEdit->setStyleSheet(R"(
-            QLineEdit {
-                padding: 8px;
-                border: 1px solid #dc3545;  /* red for error */
-                border-radius: 4px;
-                background-color: #fff8f8;  /* light red background */
-            }
-        )");
-        okButton->setEnabled(false);
-    } else {
-        ui->confirmPasswordEdit->setStyleSheet(""); // Reset style
-        okButton->setEnabled(true);
-    }
 }
 
 RegisterDialog::~RegisterDialog()
@@ -84,4 +64,28 @@ QString RegisterDialog::getUsername() const
 QString RegisterDialog::getPassword() const
 {
     return ui->passwordEdit->text();
+}
+
+void RegisterDialog::on_buttonBox_accepted()
+{
+    QString username = ui->usernameEdit->text();
+    QString password = ui->passwordEdit->text();
+    QString confirmPassword = ui->confirmPasswordEdit->text();
+
+    if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+        QMessageBox::warning(this, "Registration Error", "All fields are required");
+        return;
+    }
+
+    if (password != confirmPassword) {
+        QMessageBox::warning(this, "Registration Error", "Passwords do not match");
+        return;
+    }
+
+    accept();
+}
+
+void RegisterDialog::on_buttonBox_rejected()
+{
+    reject();
 } 

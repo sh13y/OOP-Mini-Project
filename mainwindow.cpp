@@ -8,15 +8,17 @@
 #include <QTimer>
 #include <QSettings>
 #include <QIcon>
+#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    setWindowIcon(QIcon(":/resources/app_icon.ico"));
-    setupTransactionsTable();
-    setupAcademicTable();
+    
+    // Set window title and icon
+    setWindowTitle("Personal Organizer");
+    setWindowIcon(QIcon(":/icons/organizer.png"));
     
     // Remove the menubar
     ui->menubar->hide();
@@ -52,7 +54,12 @@ MainWindow::MainWindow(QWidget *parent)
         }
         QTabBar::tab:selected {
             background-color: white;
-            color: #9F6571;  /* rose-taupe */
+        }
+        QComboBox, QDateEdit {
+            background-color: white;
+            border: 1px solid #BBB68C;
+            border-radius: 4px;
+            padding: 4px;
         }
         QTableWidget {
             background-color: white;
@@ -77,20 +84,39 @@ MainWindow::MainWindow(QWidget *parent)
         }
     )");
     
-    // Create chart view with styling
+    // Initialize tables and charts
+    setupTransactionsTable();
+    setupAcademicTable();
+    setupChartFilters();
+    
+    // Initialize chart view
     chartView = new QChartView(this);
     chartView->setRenderHint(QPainter::Antialiasing);
-    chartView->setStyleSheet("background-color: white; border-radius: 4px;");
-    ui->chartLayout->addWidget(chartView);
+    ui->verticalLayout_2->addWidget(chartView);
+    
+    // Set default chart type and month
+    chartTypeCombo->setCurrentIndex(0); // Expense
+    chartMonthEdit->setDate(QDate::currentDate());
     
     // Set up deadline checker timer
     deadlineTimer = new QTimer(this);
     connect(deadlineTimer, &QTimer::timeout, this, &MainWindow::checkDeadlines);
     deadlineTimer->start(60000); // Check every minute
     
+    // Load data and dummy data
     loadData();
     loadDummyData();
     updateChart();
+    
+    // Connect save signals for existing buttons
+    connect(ui->addIncomeButton, &QPushButton::clicked, this, &MainWindow::saveData);
+    connect(ui->addExpenseButton, &QPushButton::clicked, this, &MainWindow::saveData);
+    connect(ui->setBudgetButton, &QPushButton::clicked, this, &MainWindow::saveData);
+    connect(ui->addLectureButton, &QPushButton::clicked, this, &MainWindow::saveData);
+    connect(ui->addDeadlineButton, &QPushButton::clicked, this, &MainWindow::saveData);
+    
+    // Save data when window is closed
+    connect(this, &MainWindow::destroyed, this, &MainWindow::saveData);
 }
 
 MainWindow::~MainWindow()
@@ -138,61 +164,92 @@ void MainWindow::on_addExpenseButton_clicked()
 void MainWindow::addTransaction(const Transaction &transaction)
 {
     transactions.append(transaction);
-    
-    int row = ui->transactionsTable->rowCount();
-    ui->transactionsTable->insertRow(row);
-    
-    ui->transactionsTable->setItem(row, 0, 
-        new QTableWidgetItem(transaction.type() == Transaction::Income ? "Income" : "Expense"));
-    ui->transactionsTable->setItem(row, 1, 
-        new QTableWidgetItem(transaction.date().toString("dd/MM/yyyy")));
-    ui->transactionsTable->setItem(row, 2, 
-        new QTableWidgetItem(transaction.category()));
-    ui->transactionsTable->setItem(row, 3, 
-        new QTableWidgetItem(transaction.description()));
-    ui->transactionsTable->setItem(row, 4, 
-        new QTableWidgetItem(QString::number(transaction.amount(), 'f', 2)));
+    updateTransactionsTable();
+    updateChart();
+}
 
-    // Add remove button
-    QPushButton* removeButton = new QPushButton("×", ui->transactionsTable);
-    removeButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #F27D97;  /* rose-pompadour */
-            color: white;
-            border: none;
-            border-radius: 3px;
-            padding: 0px;
-            font-size: 16px;
-            font-family: Arial;
-            min-width: 20px;
-            max-width: 20px;
-            min-height: 20px;
-            max-height: 20px;
-        }
-        QPushButton:hover {
-            background-color: #9F6571;  /* rose-taupe */
-        }
-    )");
-    ui->transactionsTable->setCellWidget(row, 5, removeButton);
-    connect(removeButton, &QPushButton::clicked, this, &MainWindow::onRemoveTransactionClicked);
+void MainWindow::setupChartFilters()
+{
+    // Create filter layout
+    QHBoxLayout *filterLayout = new QHBoxLayout();
+    filterLayout->setSpacing(8);
+    
+    // Create type combo box
+    chartTypeCombo = new QComboBox(this);
+    chartTypeCombo->addItem("Expenses");
+    chartTypeCombo->addItem("Income");
+    connect(chartTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onChartTypeChanged);
+    
+    // Create month selector with only month and year
+    chartMonthEdit = new QDateEdit(this);
+    chartMonthEdit->setDisplayFormat("MMMM yyyy");
+    chartMonthEdit->setCalendarPopup(false); // Disable calendar popup
+    chartMonthEdit->setDate(QDate::currentDate());
+    // Set minimum and maximum dates
+    chartMonthEdit->setMinimumDate(QDate(2000, 1, 1));
+    chartMonthEdit->setMaximumDate(QDate(2100, 12, 31));
+    // Set up month/year navigation
+    QSpinBox *monthSpin = chartMonthEdit->findChild<QSpinBox*>("qt_spinbox_lineedit");
+    if (monthSpin) {
+        monthSpin->setButtonSymbols(QAbstractSpinBox::NoButtons);
+    }
+    connect(chartMonthEdit, &QDateEdit::dateChanged,
+            this, &MainWindow::onChartMonthChanged);
+    
+    // Add widgets to layout
+    filterLayout->addWidget(new QLabel("Show:"));
+    filterLayout->addWidget(chartTypeCombo);
+    filterLayout->addWidget(new QLabel("for:"));
+    filterLayout->addWidget(chartMonthEdit);
+    filterLayout->addStretch();
+    
+    // Add filter layout to main layout
+    ui->verticalLayout_2->insertLayout(1, filterLayout);
+}
+
+void MainWindow::onChartTypeChanged(int)
+{
+    updateChart();
+}
+
+void MainWindow::onChartMonthChanged(const QDate&)
+{
+    updateChart();
+    updateTransactionsTable();
 }
 
 void MainWindow::updateChart()
 {
     QMap<QString, double> categoryTotals;
-    QDate currentMonth = QDate::currentDate();
+    QDate selectedMonth = chartMonthEdit->date();
+    bool showExpenses = (chartTypeCombo->currentIndex() == 0);
     
-    // Calculate totals by category for current month
+    // Initialize all categories with zero
+    QStringList allCategories;
+    if (showExpenses) {
+        allCategories = {"Food", "Entertainment", "Travel", "Clothing", "Education", "Other"};
+    } else {
+        allCategories = {"Salary", "Scholarship", "Allowance", "Student Aid", "Other"};
+    }
+    
+    for (const QString &category : allCategories) {
+        categoryTotals[category] = 0.0;
+    }
+    
+    // Calculate totals by category for selected month
     for (const Transaction &t : transactions) {
-        if (t.type() == Transaction::Expense &&
-            t.date().month() == currentMonth.month() &&
-            t.date().year() == currentMonth.year()) {
+        if ((showExpenses && t.type() == Transaction::Expense) ||
+            (!showExpenses && t.type() == Transaction::Income)) {
+            if (t.date().month() == selectedMonth.month() &&
+                t.date().year() == selectedMonth.year()) {
             categoryTotals[t.category()] += t.amount();
+            }
         }
     }
     
     // Create bar chart with styling
-    QBarSet *set = new QBarSet("Expenses");
+    QBarSet *set = new QBarSet(showExpenses ? "Expenses" : "Income");
     set->setColor(QColor("#9F6571"));  // rose-taupe
     QStringList categories;
     
@@ -206,9 +263,10 @@ void MainWindow::updateChart()
     
     QChart *chart = new QChart();
     chart->addSeries(series);
-    chart->setTitle(QString("Expenses by Category - %1 %2")
-                       .arg(currentMonth.toString("MMMM"))
-                       .arg(currentMonth.year()));
+    chart->setTitle(QString("%1 by Category - %2 %3")
+                       .arg(showExpenses ? "Expenses" : "Income")
+                       .arg(selectedMonth.toString("MMMM"))
+                       .arg(selectedMonth.year()));
     chart->setTitleFont(QFont("Arial", 12, QFont::Bold));
     chart->setAnimationOptions(QChart::SeriesAnimations);
     chart->setBackgroundVisible(false);
@@ -250,15 +308,12 @@ void MainWindow::on_setBudgetButton_clicked()
 
 void MainWindow::saveData()
 {
-    // TODO: Implement data saving
-
-    // Save academic items
-    QSettings settings("YourCompany", "PersonalOrganizer");
-    settings.beginGroup("AcademicItems");
+    QSettings settings("PersonalOrganizerDB", "PersonalOrganizer");
     
+    // Save Academic Items
+    settings.beginGroup("AcademicItems");
     settings.remove(""); // Clear existing items
     settings.setValue("count", academicItems.size());
-    
     for (int i = 0; i < academicItems.size(); ++i) {
         const AcademicItem &item = academicItems[i];
         settings.beginGroup(QString::number(i));
@@ -269,20 +324,54 @@ void MainWindow::saveData()
         settings.setValue("duration", item.durationMinutes());
         settings.endGroup();
     }
-    
     settings.endGroup();
+    
+    // Save Transactions
+    settings.beginGroup("Transactions");
+    settings.remove(""); // Clear existing items
+    settings.setValue("count", transactions.size());
+    for (int i = 0; i < transactions.size(); ++i) {
+        const Transaction &t = transactions[i];
+        settings.beginGroup(QString::number(i));
+        settings.setValue("type", t.type());
+        settings.setValue("description", t.description());
+        settings.setValue("category", t.category());
+        settings.setValue("amount", t.amount());
+        settings.setValue("date", t.date());
+        settings.endGroup();
+    }
+    settings.endGroup();
+    
+    // Save Budgets
+    settings.beginGroup("Budgets");
+    settings.remove(""); // Clear existing items
+    for (auto it = budgets.constBegin(); it != budgets.constEnd(); ++it) {
+        settings.setValue(it.key(), it.value());
+    }
+    settings.endGroup();
+    
+    // Force save
+    settings.sync();
+    
+    // Debug output
+    qDebug() << "Data saved to:" << settings.fileName();
+    qDebug() << "Academic items saved:" << academicItems.size();
+    qDebug() << "Transactions saved:" << transactions.size();
+    qDebug() << "Budgets saved:" << budgets.size();
 }
 
 void MainWindow::loadData()
 {
-    // TODO: Implement data loading
-
-    // Load academic items
-    QSettings settings("YourCompany", "PersonalOrganizer");
-    settings.beginGroup("AcademicItems");
+    QSettings settings("PersonalOrganizerDB", "PersonalOrganizer");
     
-    int count = settings.value("count", 0).toInt();
-    for (int i = 0; i < count; ++i) {
+    // Debug output
+    qDebug() << "Loading data from:" << settings.fileName();
+    
+    // Load Academic Items
+    settings.beginGroup("AcademicItems");
+    int aCount = settings.value("count", 0).toInt();
+    qDebug() << "Found academic items:" << aCount;
+    for (int i = 0; i < aCount; ++i) {
         settings.beginGroup(QString::number(i));
         AcademicItem item(
             static_cast<AcademicItem::Type>(settings.value("type").toInt()),
@@ -294,7 +383,33 @@ void MainWindow::loadData()
         settings.endGroup();
         addAcademicItem(item);
     }
+    settings.endGroup();
     
+    // Load Transactions
+    settings.beginGroup("Transactions");
+    int tCount = settings.value("count", 0).toInt();
+    qDebug() << "Found transactions:" << tCount;
+    for (int i = 0; i < tCount; ++i) {
+        settings.beginGroup(QString::number(i));
+        Transaction t(
+            static_cast<Transaction::Type>(settings.value("type").toInt()),
+            settings.value("description").toString(),
+            settings.value("category").toString(),
+            settings.value("amount").toDouble(),
+            settings.value("date").toDate()
+        );
+        settings.endGroup();
+        addTransaction(t);
+    }
+    settings.endGroup();
+    
+    // Load Budgets
+    settings.beginGroup("Budgets");
+    QStringList categories = settings.childKeys();
+    qDebug() << "Found budget categories:" << categories;
+    for (const QString &category : categories) {
+        budgets[category] = settings.value(category).toDouble();
+    }
     settings.endGroup();
 }
 
@@ -302,12 +417,12 @@ void MainWindow::on_generateReportButton_clicked()
 {
     QMap<QString, double> incomeByCategory;
     QMap<QString, double> expenseByCategory;
-    QDate currentMonth = QDate::currentDate();
+    QDate selectedMonth = chartMonthEdit->date();
     
-    // Calculate totals by category for current month
+    // Calculate totals by category for selected month
     for (const Transaction &t : transactions) {
-        if (t.date().month() == currentMonth.month() && 
-            t.date().year() == currentMonth.year()) {
+        if (t.date().month() == selectedMonth.month() && 
+            t.date().year() == selectedMonth.year()) {
             if (t.type() == Transaction::Income) {
                 incomeByCategory[t.category()] += t.amount();
             } else {
@@ -318,8 +433,8 @@ void MainWindow::on_generateReportButton_clicked()
     
     // Create detailed report
     QString report = QString("Financial Report for %1 %2\n\n")
-                        .arg(currentMonth.toString("MMMM"))
-                        .arg(currentMonth.year());
+                        .arg(selectedMonth.toString("MMMM"))
+                        .arg(selectedMonth.year());
     
     // Add Income Details
     double totalIncome = 0;
@@ -365,31 +480,45 @@ void MainWindow::on_generateReportButton_clicked()
     report += QString("Net Savings:   Rs. %1\n")
                  .arg(QString::number(totalIncome - totalExpense, 'f', 2));
     
-    // Show report in a styled message box
-    QMessageBox reportBox;
-    reportBox.setWindowTitle("Monthly Financial Report");
-    reportBox.setText(report);
-    reportBox.setStyleSheet(R"(
-        QMessageBox {
-            background-color: white;
-        }
-        QMessageBox QLabel {
-            font-family: monospace;
-            font-size: 12px;
-        }
+    // Create a custom dialog for the report
+    QDialog *reportDialog = new QDialog(this);
+    reportDialog->setWindowTitle("Monthly Financial Report");
+    reportDialog->setMinimumWidth(500);
+    
+    QVBoxLayout *layout = new QVBoxLayout(reportDialog);
+    
+    // Add report text in a QTextEdit
+    QTextEdit *textEdit = new QTextEdit(reportDialog);
+    textEdit->setReadOnly(true);
+    textEdit->setFont(QFont("Courier", 10));
+    textEdit->setText(report);
+    layout->addWidget(textEdit);
+    
+    // Add OK button
+    QPushButton *okButton = new QPushButton("OK", reportDialog);
+    okButton->setStyleSheet(R"(
         QPushButton {
-            background-color: #4a90e2;
-            color: white;
+            background-color: #9F6571;  /* rose-taupe */
+            color: #F0EEDC;  /* eggshell */
             border: none;
             padding: 8px 16px;
             border-radius: 4px;
             min-width: 100px;
         }
         QPushButton:hover {
-            background-color: #357abd;
+            background-color: #F27D97;  /* rose-pompadour */
         }
     )");
-    reportBox.exec();
+    layout->addWidget(okButton);
+    
+    // Connect OK button to close dialog
+    connect(okButton, &QPushButton::clicked, reportDialog, &QDialog::accept);
+    
+    // Show the dialog
+    reportDialog->exec();
+    
+    // Clean up
+    delete reportDialog;
 }
 
 void MainWindow::on_addLectureButton_clicked()
@@ -492,9 +621,28 @@ void MainWindow::onRemoveTransactionClicked()
     // Find the row of the button
     for (int row = 0; row < ui->transactionsTable->rowCount(); ++row) {
         if (ui->transactionsTable->cellWidget(row, 5) == button) {
-            // Remove from both table and vector
-            transactions.remove(row);
-            ui->transactionsTable->removeRow(row);
+            // Get the transaction details from the table
+            QString dateStr = ui->transactionsTable->item(row, 1)->text();
+            QString category = ui->transactionsTable->item(row, 2)->text();
+            QString description = ui->transactionsTable->item(row, 3)->text();
+            double amount = ui->transactionsTable->item(row, 4)->text().toDouble();
+            Transaction::Type type = ui->transactionsTable->item(row, 0)->text() == "Income" 
+                ? Transaction::Income : Transaction::Expense;
+            
+            // Find and remove the transaction from the vector
+            for (int i = 0; i < transactions.size(); ++i) {
+                if (transactions[i].date().toString("dd/MM/yyyy") == dateStr &&
+                    transactions[i].category() == category &&
+                    transactions[i].description() == description &&
+                    transactions[i].amount() == amount &&
+                    transactions[i].type() == type) {
+                    transactions.remove(i);
+                    break;
+                }
+            }
+            
+            // Update the table and chart
+            updateTransactionsTable();
             updateChart();
             break;
         }
@@ -603,4 +751,74 @@ void MainWindow::loadDummyData()
     ));
 
     updateChart();
+}
+
+QVector<Transaction> MainWindow::getTransactionsForMonth(const QDate &date)
+{
+    QVector<Transaction> filteredTransactions;
+    for (const Transaction &t : transactions) {
+        if (t.date().month() == date.month() && 
+            t.date().year() == date.year()) {
+            filteredTransactions.append(t);
+        }
+    }
+    return filteredTransactions;
+}
+
+void MainWindow::updateTransactionsTable()
+{
+    // Clear existing rows
+    ui->transactionsTable->setRowCount(0);
+    
+    // Get transactions for selected month
+    QVector<Transaction> monthTransactions = getTransactionsForMonth(chartMonthEdit->date());
+    
+    // Add transactions to table
+    for (const Transaction &t : monthTransactions) {
+        int row = ui->transactionsTable->rowCount();
+        ui->transactionsTable->insertRow(row);
+        
+        // Type
+        ui->transactionsTable->setItem(row, 0, 
+            new QTableWidgetItem(t.type() == Transaction::Income ? "Income" : "Expense"));
+        
+        // Date
+        ui->transactionsTable->setItem(row, 1, 
+            new QTableWidgetItem(t.date().toString("dd/MM/yyyy")));
+        
+        // Category
+        ui->transactionsTable->setItem(row, 2, 
+            new QTableWidgetItem(t.category()));
+        
+        // Description
+        ui->transactionsTable->setItem(row, 3, 
+            new QTableWidgetItem(t.description()));
+        
+        // Amount
+        ui->transactionsTable->setItem(row, 4, 
+            new QTableWidgetItem(QString::number(t.amount(), 'f', 2)));
+        
+        // Remove button
+        QPushButton* removeButton = new QPushButton("×", ui->transactionsTable);
+        removeButton->setStyleSheet(R"(
+            QPushButton {
+                background-color: #F27D97;  /* rose-pompadour */
+                color: white;
+                border: none;
+                border-radius: 3px;
+                padding: 0px;
+                font-size: 16px;
+                font-family: Arial;
+                min-width: 20px;
+                max-width: 20px;
+                min-height: 20px;
+                max-height: 20px;
+            }
+            QPushButton:hover {
+                background-color: #9F6571;  /* rose-taupe */
+            }
+        )");
+        ui->transactionsTable->setCellWidget(row, 5, removeButton);
+        connect(removeButton, &QPushButton::clicked, this, &MainWindow::onRemoveTransactionClicked);
+    }
 } 

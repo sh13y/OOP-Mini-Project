@@ -2,19 +2,20 @@
 #define LOGINWINDOW_H
 
 #include <QMainWindow>
-#include "mainwindow.h"
 #include "database.h"
 
-namespace Ui {
-class LoginWindow;
-}
+QT_BEGIN_NAMESPACE
+namespace Ui { class LoginWindow; }
+QT_END_NAMESPACE
+
+class MainWindow;
 
 class LoginWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit LoginWindow(QWidget *parent = nullptr);
+    LoginWindow(QWidget *parent = nullptr);
     ~LoginWindow();
 
 private slots:
@@ -23,8 +24,8 @@ private slots:
 
 private:
     Ui::LoginWindow *ui;
-    MainWindow *mainWindow;
-    Database *database;
+    Database* db;
+    MainWindow* mainWindow;
 };
 
 #endif // LOGINWINDOW_H 

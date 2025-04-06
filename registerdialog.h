@@ -2,6 +2,7 @@
 #define REGISTERDIALOG_H
 
 #include <QDialog>
+#include <QPushButton>
 
 namespace Ui {
 class RegisterDialog;
@@ -18,11 +19,12 @@ public:
     QString getUsername() const;
     QString getPassword() const;
 
+private slots:
+    void on_buttonBox_accepted();
+    void on_buttonBox_rejected();
+
 private:
     Ui::RegisterDialog *ui;
-
-private slots:
-    void validatePasswords();
 };
 
 #endif // REGISTERDIALOG_H 

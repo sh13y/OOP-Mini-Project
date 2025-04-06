@@ -7,6 +7,8 @@
 #include <QtCharts>
 #include "academicitem.h"
 #include <QTimer>
+#include <QComboBox>
+#include <QDateEdit>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -32,6 +34,8 @@ private slots:
     void addAcademicItem(const AcademicItem &item);
     void onRemoveTransactionClicked();
     void onRemoveAcademicItemClicked();
+    void onChartTypeChanged(int index);
+    void onChartMonthChanged(const QDate &date);
 
 private:
     void setupTransactionsTable();
@@ -40,6 +44,9 @@ private:
     void saveData();
     void loadData();
     void loadDummyData();
+    void setupChartFilters();
+    void updateTransactionsTable();
+    QVector<Transaction> getTransactionsForMonth(const QDate &date);
 
     Ui::MainWindow *ui;
     QVector<Transaction> transactions;
@@ -47,6 +54,8 @@ private:
     QChartView *chartView;
     QVector<AcademicItem> academicItems;
     QTimer *deadlineTimer;
+    QComboBox *chartTypeCombo;
+    QDateEdit *chartMonthEdit;
 };
 
 #endif // MAINWINDOW_H 

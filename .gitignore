@@ -1,0 +1,46 @@
+# Qt build files
+build/
+*.pro.user
+*.pro.user.*
+
+# Generated files
+*.o
+*.moc
+*.cpp
+*.h
+*.rc
+*.res
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+*.dylib
+
+# Qt Creator files
+*.autosave
+
+# Debug and Release directories
+debug/
+release/
+
+# Generated UI files
+ui_*.h
+
+# Resource files
+*.qrc
+*.qmlc
+*.jsc
+
+# Qt temporary files
+*.ts
+*.qm
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db 
